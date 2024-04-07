@@ -32,7 +32,9 @@ While these messages often contain more information, like tamper flags and backf
 Those labels are:
 
 `protocolType`: The protocol of the message (SCM, SCM+, IDM, NetIDM, R900, R900BCD).
+
 `meterId`: The unique ID of the consumption meter.
+
 `meterType`: Equivalent to ERT type, often known as commodity type (gas, water, power).
 
 ### Tips and Tricks
