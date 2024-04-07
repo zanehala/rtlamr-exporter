@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"encoding/json"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -16,17 +15,9 @@ import (
 )
 
 type message struct {
-	Time    time.Time              `json:"Time"`
-	Type    string                 `json:"Type"`
-	Message map[string]interface{} `json:"Message"`
-}
-
-type SCMPlus struct {
-	ProtocolID   uint8  `json:"ProtocolID"`
-	EndpointType uint8  `json:"EndpointType"`
-	EndpointID   uint32 `json:"EndpointID"`
-	Consumption  uint32 `json:"Consumption"`
-	Tamper       uint16 `json:"Tamper"`
+	Time    time.Time        `json:"Time"`
+	Type    string           `json:"Type"`
+	Message *json.RawMessage `json:"Message"`
 }
 
 var metrics = promauto.NewGaugeVec(
@@ -52,22 +43,57 @@ func main() {
 			continue
 		}
 
-		marshalled, err := json.Marshal(input.Message) // There is probably a better way to do this
-		if err != nil {
-			logger.Warn("Failed to parse consumption message.", "message", fmt.Sprintf("%s", input.Message))
-			continue
-		}
-
-		// TODO: add more message types
 		switch input.Type {
 		case "SCM+":
 			var scmplus SCMPlus
-			json.Unmarshal(marshalled, &scmplus)
+			json.Unmarshal(*input.Message, &scmplus)
 			metrics.WithLabelValues(
 				input.Type,
 				strconv.FormatUint(uint64(scmplus.EndpointID), 10),
 				strconv.FormatUint(uint64(scmplus.EndpointType), 10),
 			).Set(float64(scmplus.Consumption))
+		case "SCM":
+			var scm SCM
+			json.Unmarshal(*input.Message, &scm)
+			metrics.WithLabelValues(
+				input.Type,
+				strconv.FormatUint(uint64(scm.ID), 10),
+				strconv.FormatUint(uint64(scm.Type), 10),
+			).Set(float64(scm.Consumption))
+		case "IDM":
+			var idm IDM
+			json.Unmarshal(*input.Message, &idm)
+			metrics.WithLabelValues(
+				input.Type,
+				strconv.FormatUint(uint64(idm.ERTSerialNumber), 10),
+				strconv.FormatUint(uint64(idm.ERTType), 10),
+			).Set(float64(idm.LastConsumptionCount))
+		case "NetIDM":
+			var netidm IDM
+			json.Unmarshal(*input.Message, &netidm)
+			metrics.WithLabelValues(
+				input.Type,
+				strconv.FormatUint(uint64(netidm.ERTSerialNumber), 10),
+				strconv.FormatUint(uint64(netidm.ERTType), 10),
+			).Set(float64(netidm.LastConsumptionCount))
+		case "R900":
+			var r900 R900
+			json.Unmarshal(*input.Message, &r900)
+			metrics.WithLabelValues(
+				input.Type,
+				strconv.FormatUint(uint64(r900.ID), 10),
+				strconv.FormatUint(uint64(r900.Unkn1), 10),
+			).Set(float64(r900.Consumption))
+		case "R900BCD":
+			var r900bcd R900
+			json.Unmarshal(*input.Message, &r900bcd)
+			metrics.WithLabelValues(
+				input.Type,
+				strconv.FormatUint(uint64(r900bcd.ID), 10),
+				strconv.FormatUint(uint64(r900bcd.Unkn1), 10),
+			).Set(float64(r900bcd.Consumption))
+		default:
+			logger.Info("Unrecognized message type", "message", reader.Text())
 		}
 	}
 }
