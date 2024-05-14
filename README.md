@@ -50,4 +50,4 @@ You can filter to a specific meter ID with the `-filterid` flag:
 $ rtlamr -format=json -filterid=12345 | rtlamr-exporter
 ```
 
-[See the rtlamr documenting for more.](https://github.com/bemasher/rtlamr/wiki/Configuration#command-line-flags)
+[See the rtlamr documentation for more.](https://github.com/bemasher/rtlamr/wiki/Configuration#command-line-flags)
